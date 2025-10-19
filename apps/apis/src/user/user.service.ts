@@ -5,12 +5,14 @@ import { Model } from 'mongoose';
 import { UserDTO } from 'dtos/user/user.dto';
 import { generateOTP } from 'utils/generate-otp';
 import { TwilioService } from 'src/twilio/twilio.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly twillioservice: TwilioService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async register(userdto: UserDTO) {
@@ -157,8 +159,14 @@ export class UserService {
         };
       }
 
+      const token = this.jwtService.sign(isUserExists._id, {
+        secret: 'secrete',
+        expiresIn: '5s',
+      });
+
       return {
         message: 'success',
+        token: token,
         statusCode: 200,
       };
     } catch (error) {
