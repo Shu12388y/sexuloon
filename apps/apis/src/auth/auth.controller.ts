@@ -25,9 +25,15 @@ export class AuthController {
     return this.authservice.verify(userdto);
   }
 
+  /* SignIN OTP */
+  @Put('signinotp')
+  siginOTP(@Body() userdto: UserDTO) {
+    return this.authservice.generateSiginOTP(userdto);
+  }
+
   /*Sigin User */
   @Post('signin')
-  sigin() {
-    return this.authservice.signin();
+  sigin(@Body() userdto: UserDTO) {
+    return this.authservice.signin(userdto);
   }
 }

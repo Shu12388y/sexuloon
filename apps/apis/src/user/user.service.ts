@@ -88,4 +88,81 @@ export class UserService {
       throw new Error(error.toString());
     }
   }
+
+  async generateSigninOTP(userdto: UserDTO) {
+    try {
+      /* take the phonenumber as a input generate a OTP */
+      const isUserExists = await this.userModel.findOne({
+        phonenumber: userdto.phonenumber,
+      });
+      if (!isUserExists) {
+        return {
+          message: 'User not exists',
+          statusCode: 402,
+        };
+      }
+
+      // Is user is verified
+      if (!isUserExists.isVerified) {
+        return {
+          message: 'First Verified your phonenumber',
+          statusCode: 401,
+        };
+      }
+
+      const OTP = generateOTP();
+
+      await this.twillioservice.sendOTP(OTP.toString(), userdto.phonenumber);
+      await this.userModel.findOneAndUpdate(
+        {
+          phonenumber: userdto.phonenumber,
+        },
+        {
+          otp: OTP,
+        },
+      );
+      return {
+        message: 'OTP send Successfully',
+        statusCode: 200,
+      };
+    } catch (error) {
+      throw new Error(error.toString());
+    }
+  }
+
+  async signin(userdto: UserDTO) {
+    try {
+      const isUserExists = await this.userModel.findOne({
+        phonenumber: userdto.phonenumber,
+      });
+
+      if (!isUserExists) {
+        return {
+          message: 'User not exists',
+          statusCode: 404,
+        };
+      }
+
+      if (!isUserExists.isVerified) {
+        return {
+          message: 'Phonenumber is not verified',
+          statusCode: 401,
+        };
+      }
+
+      if (userdto.otp !== isUserExists.otp) {
+        return {
+          message: 'Wrong OTP',
+          statusCode: 402,
+        };
+      }
+
+      return {
+        message: 'success',
+        statusCode: 200,
+      };
+    } catch (error) {
+      throw new Error(error.toString());
+    }
+  }
 }

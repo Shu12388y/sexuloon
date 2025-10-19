@@ -15,7 +15,13 @@ export class AuthService {
     return { message: info };
   }
 
-  signin() {
-    return { message: 'Signin user' };
+  async generateSiginOTP(userdto: UserDTO) {
+    const info = await this.userservice.generateSigninOTP(userdto);
+    return { message: info };
+  }
+
+  async signin(userdto: UserDTO) {
+    const info = await this.userservice.signin(userdto);
+    return { message: info };
   }
 }
