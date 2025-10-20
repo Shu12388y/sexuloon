@@ -11,8 +11,8 @@ export class AuthService {
   }
 
   async verify(userdto: UserDTO) {
-    const info = await this.userservice.verify(userdto);
-    return { message: info };
+    // const info = await this.userservice.verify(userdto);
+    // return { message: info };
   }
 
   async generateSiginOTP(userdto: UserDTO) {

@@ -3,9 +3,9 @@ import { HydratedDocument } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
-@Schema()
+@Schema({ timestamps: true })
 export class User {
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   phonenumber: string;
 
   @Prop({ default: false })
@@ -13,6 +13,9 @@ export class User {
 
   @Prop()
   otp: string;
+
+  @Prop({ type: Date })
+  otpExpired: Date;
 }
 
 export const userSchema = SchemaFactory.createForClass(User);

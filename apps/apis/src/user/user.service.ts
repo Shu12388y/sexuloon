@@ -15,6 +15,7 @@ export class UserService {
     private readonly jwtService: JwtService,
   ) {}
 
+  /* Register a new User */
   async register(userdto: UserDTO) {
     try {
       const user = await this.userModel.find({
@@ -28,11 +29,13 @@ export class UserService {
         };
       }
       const OTP = generateOTP();
+      const expiredTime = new Date(Date.now() + 1 * 60 * 1000);
       await this.twillioservice.sendOTP(OTP.toString(), userdto.phonenumber);
       await this.userModel.create({
         isVerified: false,
         otp: OTP.toString(),
         phonenumber: userdto.phonenumber,
+        otpExpired: expiredTime,
       });
       return {
         message: 'User created',
@@ -43,36 +46,42 @@ export class UserService {
     }
   }
 
-  async verify(userdto: UserDTO) {
+  /* Verify the new User */
+  async registed(userdto: UserDTO) {
     try {
-      // Check whether user exist or not
-      const isUserVerified = await this.userModel.findOne({
+      const isUserExists = await this.userModel.findOne({
         phonenumber: userdto.phonenumber,
       });
-      if (!isUserVerified) {
+
+      if (!isUserExists) {
         return {
-          message: 'User not Exists',
+          message: 'User not exists',
           statusCode: 404,
         };
       }
 
-      //   check if the user is already verified or not
-      if (isUserVerified.isVerified) {
+      if (isUserExists.isVerified) {
         return {
           message: 'User is already verified',
-          statusCode: 401,
+          statusCode: 200,
         };
       }
 
-      //   Check the OTP is current or not
-      if (isUserVerified.otp !== userdto.otp) {
+      if (isUserExists.otp !== userdto.otp) {
         return {
           message: 'Wrong OTP',
           statusCode: 402,
         };
       }
 
-      //   If it is correc then verify the user
+      const isOTPIsExpired = new Date(Date.now());
+      if (isUserExists.otpExpired > isOTPIsExpired) {
+        return {
+          message: 'OTP expired',
+          statusCode: 401,
+        };
+      }
+
       await this.userModel.findOneAndUpdate(
         {
           phonenumber: userdto.phonenumber,
@@ -91,6 +100,103 @@ export class UserService {
     }
   }
 
+  /* Verify the number send the OTP*/
+  async sendingVerifyOTP(userdto: UserDTO) {
+    try {
+      const user = await this.userModel.find({
+        phonenumber: userdto.phonenumber,
+      });
+      //   If user not exists
+      if (user.length == 0) {
+        return {
+          message: 'User not exists. Please register first',
+          statusCode: 404,
+        };
+      }
+
+      if (user[0].isVerified) {
+        return {
+          message: 'Your phone number is already verified',
+          statusCode: 402,
+        };
+      }
+      const OTP = generateOTP();
+      const expiredTime = new Date(Date.now() + 1 * 60 * 1000);
+      await this.twillioservice.sendOTP(OTP.toString(), userdto.phonenumber);
+
+      await this.userModel.findOneAndUpdate(
+        {
+          phonenumber: userdto.phonenumber,
+        },
+        {
+          otp: OTP,
+          otpExpired: expiredTime,
+        },
+      );
+
+      return {
+        message: 'OTP sended',
+        statusCode: 201,
+      };
+    } catch (error) {
+      throw new Error(error.toString());
+    }
+  }
+
+  /* Verify the phone number */
+  async verify(userdto: UserDTO) {
+    try {
+      const user = await this.userModel.find({
+        phonenumber: userdto.phonenumber,
+      });
+      //   If user exists
+      if (user.length === 0) {
+        return {
+          message: 'User not exists',
+          statusCode: 404,
+        };
+      }
+
+      if (user[0].isVerified) {
+        return {
+          message: 'User is already verified',
+          status: 200,
+        };
+      }
+
+      if (user[0].otp !== userdto.otp) {
+        return {
+          message: 'OTP is wrong',
+          statusCode: 402,
+        };
+      }
+
+      const isOTPIsExpired = new Date(Date.now());
+      if (isOTPIsExpired > user[0].otpExpired) {
+        return {
+          message: 'OTP is expired',
+          statusCode: 401,
+        };
+      }
+
+      await this.userModel.findOneAndUpdate(
+        {
+          phonenumber: userdto.phonenumber,
+        },
+        {
+          isVerified: true,
+        },
+      );
+      return {
+        message: 'Verified',
+        statusCode: 200,
+      };
+    } catch (error) {
+      throw new Error(error.toString());
+    }
+  }
+
+  /* Sending Signin OTP */
   async generateSigninOTP(userdto: UserDTO) {
     try {
       /* take the phonenumber as a input generate a OTP */
@@ -113,7 +219,6 @@ export class UserService {
       }
 
       const OTP = generateOTP();
-
       await this.twillioservice.sendOTP(OTP.toString(), userdto.phonenumber);
       await this.userModel.findOneAndUpdate(
         {
@@ -132,6 +237,7 @@ export class UserService {
     }
   }
 
+  /* Signin the user  */
   async signin(userdto: UserDTO) {
     try {
       const isUserExists = await this.userModel.findOne({
@@ -169,6 +275,18 @@ export class UserService {
         token: token,
         statusCode: 200,
       };
+    } catch (error) {
+      throw new Error(error.toString());
+    }
+  }
+
+  /*Resend OTP */
+  async resendOTP(userdto: UserDTO, type: string) {
+    try {
+      if (type === 'register') {
+      } else if (type === 'verify') {
+      } else {
+      }
     } catch (error) {
       throw new Error(error.toString());
     }
